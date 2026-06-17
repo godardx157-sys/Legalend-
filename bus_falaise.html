@@ -94,31 +94,45 @@ const BUS_W = 28, BUS_H = 50, BUS_Y = H - 110;
 
 // ── Input ─────────────────────────────────────────────────────────────────
 const keys = {};
-document.addEventListener('keydown', e => { keys[e.code] = true; e.preventDefault(); });
+const GAME_KEYS = new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyA','KeyD','Enter']);
+document.addEventListener('keydown', e => { keys[e.code] = true; if (GAME_KEYS.has(e.code)) e.preventDefault(); });
 document.addEventListener('keyup',   e => { keys[e.code] = false; });
 
 let touchLeft = false, touchRight = false;
+
+function touchToCanvasX(t) {
+  const r = canvas.getBoundingClientRect();
+  return (t.clientX - r.left) / (r.width / W);
+}
+
 canvas.addEventListener('touchstart', e => {
-  for (const t of e.changedTouches) {
-    const r = canvas.getBoundingClientRect();
-    ((t.clientX - r.left) / (r.width / W) < W/2) ? (touchLeft=true) : (touchRight=true);
-  }
   e.preventDefault();
+  if (state === 'menu') { reset(); return; }
+  if (state === 'dead' && deathPhase > 60) { reset(); return; }
+  for (const t of e.changedTouches) {
+    touchToCanvasX(t) < W/2 ? (touchLeft = true) : (touchRight = true);
+  }
 }, { passive: false });
+
 canvas.addEventListener('touchend', e => {
-  touchLeft = touchRight = false; e.preventDefault();
-}, { passive: false });
-canvas.addEventListener('touchmove', e => {
-  touchLeft = touchRight = false;
-  for (const t of e.changedTouches) {
-    const r = canvas.getBoundingClientRect();
-    ((t.clientX - r.left) / (r.width / W) < W/2) ? (touchLeft=true) : (touchRight=true);
-  }
   e.preventDefault();
+  touchLeft = touchRight = false;
+  for (const t of e.touches) {
+    touchToCanvasX(t) < W/2 ? (touchLeft = true) : (touchRight = true);
+  }
 }, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  touchLeft = touchRight = false;
+  for (const t of e.touches) {
+    touchToCanvasX(t) < W/2 ? (touchLeft = true) : (touchRight = true);
+  }
+}, { passive: false });
+
 canvas.addEventListener('click', () => {
   if (state === 'menu') reset();
-  else if (state === 'dead' && deathPhase > 60) state = 'menu';
+  else if (state === 'dead' && deathPhase > 60) reset();
 });
 
 // ── State ─────────────────────────────────────────────────────────────────
